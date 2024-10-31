@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -39,15 +38,9 @@ func WebhookHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Optionally, you can parse the JSON to validate the payload (uncomment if needed)
-	var payload map[string]interface{}
-	if err := json.Unmarshal(body, &payload); err != nil {
-		http.Error(w, "Invalid JSON payload", http.StatusBadRequest)
-		return
-	}
-
-	// Respond to the webhook sender
-	fmt.Fprintf(w, "Webhook received and logged successfully!")
+	// Respond with the exact same body as received
+	w.Header().Set("Content-Type", r.Header.Get("Content-Type"))
+	w.Write(body)
 }
 
 func main() {
