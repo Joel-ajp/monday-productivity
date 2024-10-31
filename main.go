@@ -12,8 +12,18 @@ const logFile = "webhook_log.txt"
 
 // WebhookHandler handles incoming webhooks
 func WebhookHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
+	// Open the log file
+	f, err := os.OpenFile(logFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		http.Error(w, "Failed to open log file", http.StatusInternalServerError)
+		return
+	}
+	defer f.Close()
+
+	// Log request method, URL, and headers
+	logEntry := fmt.Sprintf("Request received:\nMethod: %s\nURL: %s\nHeaders: %v\n", r.Method, r.URL.String(), r.Header)
+	if _, err := f.WriteString(logEntry); err != nil {
+		http.Error(w, "Failed to write to log file", http.StatusInternalServerError)
 		return
 	}
 
@@ -24,17 +34,15 @@ func WebhookHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Write the body to the log file
-	f, err := os.OpenFile(logFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	if err != nil {
-		http.Error(w, "Failed to open log file", http.StatusInternalServerError)
+	// Log the request body
+	if _, err := f.WriteString(fmt.Sprintf("Body:\n%s\n\n", string(body))); err != nil {
+		http.Error(w, "Failed to write to log file", http.StatusInternalServerError)
 		return
 	}
-	defer f.Close()
 
-	// Log the request body
-	if _, err := f.WriteString(fmt.Sprintf("Webhook received:\n%s\n\n", string(body))); err != nil {
-		http.Error(w, "Failed to write to log file", http.StatusInternalServerError)
+	// Only respond if the method is POST, otherwise return an error
+	if r.Method != http.MethodPost {
+		http.Error(w, "Invalid request method", http.StatusMethodNotAllowed)
 		return
 	}
 
